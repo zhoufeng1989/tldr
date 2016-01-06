@@ -12,32 +12,55 @@ sealed abstract class Command {
   def exec: Unit
 }
 case class Find(command: String, platforms: List[String], pagesDir: String) extends Command {
-  override def exec() = ""
+  override def exec = {
+    println("find command")
+  }
 }
-//case class Update(destRepo: String) extends Command
-//case object Init extends Command
-//case object Help extends Command
-//case object WrongCommand extends Command
+case class Update(destRepo: String) extends Command {
+  override def exec = {
+    println("update tldr...")
+    println("done.")
+  }
+}
+case object Init extends Command {
+  override def exec = {
+    println("init tldr...")
+  }
+}
+case object Help extends Command {
+  override def exec = {
+    println("help command")
+  }
+}
+case object WrongCommand extends Command {
+  override def exec = ()
+}
+
 object Command {
-  //def apply(args: Array[String]) = args match {
-  //  case Array("init") => Init
-  //  case Array("help") => Help
-  //  case Array("update") => {
-  //    val env = getEnv()
-  //    Update(env("pagesDir"))
-  //  }
-  //  case Array("find", c) => {
-  //    val env = getEnv()
-  //    Find(c, env("platforms"), env("pagesDir"))
-  //  }
-  //  case _ => WrongCommand
-  //}
+  def apply(args: Array[String]) = args match {
+    case Array("init") => Init
+    case Array("help") => Help
+    case Array("update") => {
+      val env = Env()
+      Update(env.rootDir)
+    }
+    case Array("find", c) => {
+      val env = Env()
+      Find(c, env.platforms, env.pagesDir)
+    }
+    case _ => WrongCommand
+  }
+}
 
-  def getEnv() = {
-    val platformMap = Map("OSX" -> "osx")
-    val configFile = s"${System.getProperty("user.home")}/.tldrcc"
 
-    val pagesDir, rootDir = Try{
+class Env(val platforms: List[String], val pagesDir: String, val rootDir: String)
+
+object Env {
+  val platformMap = Map("OSX" -> "osx")
+  val configFile = s"${System.getProperty("user.home")}/.tldrc"
+
+  def apply() = {
+    val (pagesDir, rootDir) = Try {
       val yaml = new Yaml()
       val content = yaml.load(scala.io.Source.fromFile(configFile).reader())
       content.asInstanceOf[java.util.Map[String, String]].asScala.toMap
@@ -56,15 +79,13 @@ object Command {
     //val pagePaths = platforms map {
     //  platform => List(pagesDir, platform, command).mkString(System.getProperty("file.separator")) + ".md"
     //}
-    Map("platforms" -> platforms, "pagesDir" -> pagesDir, "rootDir" -> rootDir)
+    new Env(platforms, pagesDir, rootDir)
   }
 }
 
-
 object Tldr extends App {
-  println(Command.getEnv())
-  //println(pagePaths)
-  //println(pagePaths.map(parse))
+  val command = Command(args)
+  command.exec
   def init(dest: String) = {
     s"git clone https://github.com/tldr-pages/tldr.git ${dest}" !
   }
