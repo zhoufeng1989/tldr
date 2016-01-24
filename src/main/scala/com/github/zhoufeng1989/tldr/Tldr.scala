@@ -19,12 +19,21 @@ case class Find(command: String, platforms: List[String], pagesDir: String) exte
 case class Update(destRepo: String) extends Command {
   override def exec = {
     println("update tldr...")
-    println("done.")
+    s"cd ${destRepo}; git pull" !
   }
 }
 case object Init extends Command {
   override def exec = {
-    println("init tldr...")
+    val configFile = s"${System.getProperty("user.home")}/.tldrc"
+    val rootDir = {
+      val defaultRoot = s"${System.getProperty("user.home")}/.tldr"
+      val inputDir = scala.io.StdIn.readLine(s"Please enter tldr root dir [${defaultRoot}]:")
+      if (inputDir.isEmpty) defaultRoot else inputDir
+    }
+    Process(Seq("bash", "-c", s"mkdir ${rootDir} && git clone https://github.com/tldr-pages/tldr.git ${rootDir}")) !
+    val writer = new java.io.PrintWriter(new java.io.File(configFile))
+    writer.write(List(s"root: ${rootDir}", s"pages: ${rootDir}/pages") mkString("\n"))
+    writer.close()
   }
 }
 case object Help extends Command {
@@ -76,9 +85,6 @@ object Env {
       case None => List("common")
     }
     val separator = System.getProperty("file.separator")
-    //val pagePaths = platforms map {
-    //  platform => List(pagesDir, platform, command).mkString(System.getProperty("file.separator")) + ".md"
-    //}
     new Env(platforms, pagesDir, rootDir)
   }
 }
