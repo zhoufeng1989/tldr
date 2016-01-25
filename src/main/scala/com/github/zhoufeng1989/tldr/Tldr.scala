@@ -11,17 +11,7 @@ import scala.util.{Try, Success, Failure}
 sealed abstract class Command {
   def exec: Unit
 }
-case class Find(command: String, platforms: List[String], pagesDir: String) extends Command {
-  override def exec = {
-    println("find command")
-  }
-}
-case class Update(destRepo: String) extends Command {
-  override def exec = {
-    println("update tldr...")
-    s"cd ${destRepo}; git pull" !
-  }
-}
+
 case object Init extends Command {
   override def exec = {
     val configFile = s"${System.getProperty("user.home")}/.tldrc"
@@ -36,13 +26,46 @@ case object Init extends Command {
     writer.close()
   }
 }
+
+case class Update(destRepo: String) extends Command {
+  override def exec = {
+    println("update tldr...")
+    Process(Seq("bash", "-c", s"cd ${destRepo} && git pull")) !;
+    println("Done")
+  }
+}
+
+case class Find(command: String, platforms: List[String], pagesDir: String) extends Command {
+  override def exec = {
+    println(platforms map {
+      platform => {
+        val pagePath = s"${List(pagesDir, platform, command) mkString System.getProperty("file.separator")}.md"
+        parse(pagePath)
+      }
+    })
+  }
+  def parse(pagePath: String): Option[String] = {
+    try {
+      val page = scala.io.Source.fromFile(pagePath).getLines()
+      Some(page.mkString("\n"))
+    }
+    catch {
+      case _: Exception => None
+    }
+  }
+}
+
 case object Help extends Command {
   override def exec = {
     println("help command")
   }
 }
+
 case object WrongCommand extends Command {
-  override def exec = ()
+  override def exec = {
+    println("wrong command")
+    Help.exec
+  }
 }
 
 object Command {
@@ -92,28 +115,6 @@ object Env {
 object Tldr extends App {
   val command = Command(args)
   command.exec
-  def init(dest: String) = {
-    s"git clone https://github.com/tldr-pages/tldr.git ${dest}" !
-  }
-
-  def update(dest: String) = {
-    s"cd ${dest}; git pull" !
-  }
-
-  def help():String = {
-    "this is help document"
-  }
-
-
-  def parse(pagePath: String): Option[String] = {
-    try {
-      val page = scala.io.Source.fromFile(pagePath).getLines()
-      Some(page.mkString("\n"))
-    }
-    catch {
-      case _: Exception => None
-    }
-  }
 }
 
 
