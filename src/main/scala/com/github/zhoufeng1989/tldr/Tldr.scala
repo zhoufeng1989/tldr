@@ -37,12 +37,21 @@ case class Update(destRepo: String) extends Command {
 
 case class Find(command: String, platforms: List[String], pagesDir: String) extends Command {
   override def exec = {
-    println(platforms map {
-      platform => {
-        val pagePath = s"${List(pagesDir, platform, command) mkString System.getProperty("file.separator")}.md"
-        parse(pagePath)
+    val resultStream = {
+      platforms.toStream.foldLeft(List.empty[String]){
+        (result, platform) => {
+          val pagePath = s"${List(pagesDir, platform, command) mkString System.getProperty("file.separator")}.md"
+          parse(pagePath) match {
+            case Some(x) => result ++ List(x)
+            case _ => result
+          }
+        }
       }
-    })
+    }
+    Try(resultStream.head) match {
+      case Success(x) => println(render(x))
+      case Failure(_) => println(s"Command ${command} not found")
+    }
   }
   def parse(pagePath: String): Option[String] = {
     try {
@@ -53,6 +62,8 @@ case class Find(command: String, platforms: List[String], pagesDir: String) exte
       case _: Exception => None
     }
   }
+
+  def render(content: String) = content
 }
 
 case object Help extends Command {
@@ -88,7 +99,7 @@ object Command {
 class Env(val platforms: List[String], val pagesDir: String, val rootDir: String)
 
 object Env {
-  val platformMap = Map("OSX" -> "osx")
+  val platformMap = Map("Mac OS X" -> "osx")
   val configFile = s"${System.getProperty("user.home")}/.tldrc"
 
   def apply() = {
