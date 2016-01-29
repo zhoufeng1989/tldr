@@ -7,6 +7,7 @@ import org.yaml.snakeyaml.Yaml
 import scala.collection.JavaConverters._
 import sys.process._
 import scala.util.{Try, Success, Failure}
+import Colorise.StringColorise
 
 sealed abstract class Command {
   def exec: Unit
@@ -63,7 +64,16 @@ case class Find(command: String, platforms: List[String], pagesDir: String) exte
     }
   }
 
-  def render(content: String) = content
+  def render(content: String) = {
+    val lines = content.split("\n")
+    lines map {
+      case str if str.startsWith("#") => str.red
+      case str if str.startsWith("`") => str.green
+      case str if str.startsWith("-") => str.blue
+      case str => str
+    } mkString "\n"
+
+  }
 }
 
 case object Help extends Command {
